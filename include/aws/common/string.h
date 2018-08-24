@@ -125,16 +125,16 @@ int aws_array_list_comparator_string(const void *a, const void *b);
     static const struct aws_string *(name) = &name##_s.hdr
 
 /**
- * Copies all bytes from string to cursor.
+ * Copies all bytes from string to buf.
  *
- * On success, returns true and updates the cursor pointer/length
- * accordingly. If there is insufficient space in the cursor, returns
- * false, leaving the cursor unchanged.
+ * On success, returns true and updates the buf pointer/length
+ * accordingly. If there is insufficient space in the buf, returns
+ * false, leaving the buf unchanged.
  */
-static inline bool aws_byte_cursor_write_from_whole_string(
-    struct aws_byte_cursor *AWS_RESTRICT cur,
+static inline bool aws_byte_buf_write_from_whole_string(
+    struct aws_byte_buf *AWS_RESTRICT cur,
     const struct aws_string *AWS_RESTRICT src) {
-    return aws_byte_cursor_write(cur, aws_string_bytes(src), src->len);
+    return aws_byte_buf_write(cur, aws_string_bytes(src), src->len);
 }
 
 /**
