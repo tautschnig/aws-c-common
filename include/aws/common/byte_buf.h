@@ -65,7 +65,7 @@ int aws_byte_buf_init(struct aws_allocator *allocator, struct aws_byte_buf *buf,
  * Returns AWS_OP_SUCCESS in case of success or AWS_OP_ERR when memory can't be allocated.
  */
 AWS_COMMON_API
-int aws_byte_buf_init_copy(
+int aws_byte_buf_init_copy_from_cursor(
     struct aws_allocator *allocator,
     struct aws_byte_buf *dest,
     const struct aws_byte_cursor *src);
@@ -118,7 +118,7 @@ AWS_COMMON_API
 int aws_byte_cursor_split_on_char(
     const struct aws_byte_cursor *AWS_RESTRICT input_str,
     char split_on,
-    struct aws_array_list *output);
+    struct aws_array_list *AWS_RESTRICT output);
 
 /**
  * No copies, no buffer allocations. Fills in output with a list of aws_byte_cursor instances where buffer is
@@ -141,7 +141,7 @@ AWS_COMMON_API
 int aws_byte_cursor_split_on_char_n(
     const struct aws_byte_cursor *AWS_RESTRICT input_str,
     char split_on,
-    struct aws_array_list *output,
+    struct aws_array_list *AWS_RESTRICT output,
     size_t n);
 
 /**
@@ -149,7 +149,7 @@ int aws_byte_cursor_split_on_char_n(
  * returned. dest->len will contain the amount of data actually copied to dest.
  */
 AWS_COMMON_API
-int aws_byte_buf_append(struct aws_byte_buf *to, const struct aws_byte_cursor *AWS_RESTRICT from);
+int aws_byte_buf_append(struct aws_byte_buf *to, const struct aws_byte_cursor *from);
 
 /**
  * Concatenates a variable number of struct aws_byte_buf * into destination.
@@ -192,10 +192,19 @@ static inline struct aws_byte_buf aws_byte_buf_from_c_str(const char *c_str) {
     return buf;
 }
 
-static inline struct aws_byte_buf aws_byte_buf_from_array(const void *bytes, size_t len, size_t capacity) {
+static inline struct aws_byte_buf aws_byte_buf_from_array(const void *bytes, size_t len) {
     struct aws_byte_buf buf;
     buf.buffer = (uint8_t *)bytes;
     buf.len = len;
+    buf.capacity = len;
+    buf.allocator = NULL;
+    return buf;
+}
+
+static inline struct aws_byte_buf aws_byte_buf_from_empty_array(const void *bytes, size_t capacity) {
+    struct aws_byte_buf buf;
+    buf.buffer = (uint8_t *)bytes;
+    buf.len = 0;
     buf.capacity = capacity;
     buf.allocator = NULL;
     return buf;
@@ -220,6 +229,15 @@ static inline struct aws_byte_cursor aws_byte_cursor_from_array(const void *byte
     cur.ptr = (uint8_t *)bytes;
     cur.len = len;
     return cur;
+}
+
+static inline int aws_byte_buf_init_copy(
+    struct aws_allocator *allocator,
+    struct aws_byte_buf *dest,
+    const struct aws_byte_buf *src) {
+
+    struct aws_byte_cursor src_cur = aws_byte_cursor_from_buf(src);
+    return aws_byte_buf_init_copy_from_cursor(allocator, dest, &src_cur);
 }
 
 /**
