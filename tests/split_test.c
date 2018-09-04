@@ -27,7 +27,7 @@ static int s_test_char_split_happy_path_fn(struct aws_allocator *allocator, void
 
     struct aws_array_list output;
     ASSERT_SUCCESS(aws_array_list_init_dynamic(&output, allocator, 4, sizeof(struct aws_byte_cursor)));
-    ASSERT_SUCCESS(aws_byte_cursor_split_on_char(&to_split, ';', &output));
+    ASSERT_SUCCESS(aws_byte_cursor_split_on_char(to_split, ';', &output));
     ASSERT_INT_EQUALS(3, aws_array_list_length(&output));
 
     struct aws_byte_cursor value = {0};
@@ -60,7 +60,7 @@ static int s_test_char_split_ends_with_token_fn(struct aws_allocator *allocator,
 
     struct aws_array_list output;
     ASSERT_SUCCESS(aws_array_list_init_dynamic(&output, allocator, 4, sizeof(struct aws_byte_cursor)));
-    ASSERT_SUCCESS(aws_byte_cursor_split_on_char(&to_split, ';', &output));
+    ASSERT_SUCCESS(aws_byte_cursor_split_on_char(to_split, ';', &output));
     ASSERT_INT_EQUALS(4, aws_array_list_length(&output));
 
     struct aws_byte_cursor value = {0};
@@ -95,7 +95,7 @@ static int s_test_char_split_begins_with_token_fn(struct aws_allocator *allocato
 
     struct aws_array_list output;
     ASSERT_SUCCESS(aws_array_list_init_dynamic(&output, allocator, 4, sizeof(struct aws_byte_cursor)));
-    ASSERT_SUCCESS(aws_byte_cursor_split_on_char(&to_split, ';', &output));
+    ASSERT_SUCCESS(aws_byte_cursor_split_on_char(to_split, ';', &output));
     ASSERT_INT_EQUALS(4, aws_array_list_length(&output));
 
     struct aws_byte_cursor value = {0};
@@ -132,7 +132,7 @@ static int s_test_char_split_token_not_present_fn(struct aws_allocator *allocato
 
     struct aws_array_list output;
     ASSERT_SUCCESS(aws_array_list_init_dynamic(&output, allocator, 4, sizeof(struct aws_byte_cursor)));
-    ASSERT_SUCCESS(aws_byte_cursor_split_on_char(&to_split, ';', &output));
+    ASSERT_SUCCESS(aws_byte_cursor_split_on_char(to_split, ';', &output));
     ASSERT_INT_EQUALS(1, aws_array_list_length(&output));
 
     struct aws_byte_cursor value = {0};
@@ -157,7 +157,7 @@ static int s_test_char_split_empty_fn(struct aws_allocator *allocator, void *ctx
 
     struct aws_array_list output;
     ASSERT_SUCCESS(aws_array_list_init_dynamic(&output, allocator, 4, sizeof(struct aws_byte_cursor)));
-    ASSERT_SUCCESS(aws_byte_cursor_split_on_char(&to_split, ';', &output));
+    ASSERT_SUCCESS(aws_byte_cursor_split_on_char(to_split, ';', &output));
     ASSERT_INT_EQUALS(1, aws_array_list_length(&output));
 
     struct aws_byte_cursor value = {0};
@@ -179,7 +179,7 @@ static int s_test_char_split_adj_tokens_fn(struct aws_allocator *allocator, void
 
     struct aws_array_list output;
     ASSERT_SUCCESS(aws_array_list_init_dynamic(&output, allocator, 4, sizeof(struct aws_byte_cursor)));
-    ASSERT_SUCCESS(aws_byte_cursor_split_on_char(&to_split, ';', &output));
+    ASSERT_SUCCESS(aws_byte_cursor_split_on_char(to_split, ';', &output));
     ASSERT_INT_EQUALS(4, aws_array_list_length(&output));
 
     struct aws_byte_cursor value = {0};
@@ -216,7 +216,7 @@ static int s_test_char_split_with_max_splits_fn(struct aws_allocator *allocator,
 
     struct aws_array_list output;
     ASSERT_SUCCESS(aws_array_list_init_dynamic(&output, allocator, 4, sizeof(struct aws_byte_cursor)));
-    ASSERT_SUCCESS(aws_byte_cursor_split_on_char_n(&to_split, ';', &output, 2));
+    ASSERT_SUCCESS(aws_byte_cursor_split_on_char_n(to_split, ';', 2, &output));
     ASSERT_INT_EQUALS(3, aws_array_list_length(&output));
 
     struct aws_byte_cursor value = {0};
@@ -251,7 +251,7 @@ static int s_test_char_split_output_too_small_fn(struct aws_allocator *allocator
     struct aws_array_list output;
     struct aws_byte_cursor output_array[3] = {{0}};
     aws_array_list_init_static(&output, output_array, 3, sizeof(struct aws_byte_cursor));
-    ASSERT_ERROR(AWS_ERROR_LIST_EXCEEDS_MAX_SIZE, aws_byte_cursor_split_on_char(&to_split, ';', &output));
+    ASSERT_ERROR(AWS_ERROR_LIST_EXCEEDS_MAX_SIZE, aws_byte_cursor_split_on_char(to_split, ';', &output));
     ASSERT_INT_EQUALS(3, aws_array_list_length(&output));
 
     struct aws_byte_cursor value = {0};

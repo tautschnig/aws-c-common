@@ -54,7 +54,7 @@ extern "C" {
 #endif
 
 AWS_COMMON_API
-int aws_byte_buf_init(struct aws_allocator *allocator, struct aws_byte_buf *buf, size_t capacity);
+int aws_byte_buf_init(struct aws_byte_buf *buf, struct aws_allocator *allocator, size_t capacity);
 
 /**
  * Copies src buffer into dest and sets the correct len and capacity.
@@ -66,9 +66,9 @@ int aws_byte_buf_init(struct aws_allocator *allocator, struct aws_byte_buf *buf,
  */
 AWS_COMMON_API
 int aws_byte_buf_init_copy_from_cursor(
-    struct aws_allocator *allocator,
     struct aws_byte_buf *dest,
-    const struct aws_byte_cursor *src);
+    struct aws_allocator *allocator,
+    struct aws_byte_cursor src);
 
 AWS_COMMON_API
 void aws_byte_buf_clean_up(struct aws_byte_buf *buf);
@@ -116,7 +116,7 @@ bool aws_byte_buf_eq(const struct aws_byte_buf *a, const struct aws_byte_buf *b)
  */
 AWS_COMMON_API
 int aws_byte_cursor_split_on_char(
-    const struct aws_byte_cursor *AWS_RESTRICT input_str,
+    struct aws_byte_cursor input_str,
     char split_on,
     struct aws_array_list *AWS_RESTRICT output);
 
@@ -133,20 +133,25 @@ int aws_byte_cursor_split_on_char(
  * It is the user's responsibility to properly initialize output. Recommended number of preallocated elements from
  * output is your most likely guess for the upper bound of the number of elements resulting from the split.
  *
+ * If the output array is not large enough, input_str will be updated to point to the first character after the last
+ * processed split_on instance.
+ *
  * The type that will be stored in output is struct aws_byte_cursor (you'll need this for the item size param).
  *
  * It is the user's responsibility to make sure the input buffer stays in memory long enough to use the results.
  */
 AWS_COMMON_API
 int aws_byte_cursor_split_on_char_n(
-    const struct aws_byte_cursor *AWS_RESTRICT input_str,
+    struct aws_byte_cursor input_str,
     char split_on,
-    struct aws_array_list *AWS_RESTRICT output,
-    size_t n);
+    size_t n,
+    struct aws_array_list *AWS_RESTRICT output);
 
 /**
  * Copies from to to. If to is too small, AWS_ERROR_DEST_COPY_TOO_SMALL will be
  * returned. dest->len will contain the amount of data actually copied to dest.
+ *
+ * from and to may be the same buffer, permitting copying a buffer into itself.
  */
 AWS_COMMON_API
 int aws_byte_buf_append(struct aws_byte_buf *to, const struct aws_byte_cursor *from);
@@ -232,12 +237,12 @@ static inline struct aws_byte_cursor aws_byte_cursor_from_array(const void *byte
 }
 
 static inline int aws_byte_buf_init_copy(
-    struct aws_allocator *allocator,
     struct aws_byte_buf *dest,
+    struct aws_allocator *allocator,
     const struct aws_byte_buf *src) {
 
     struct aws_byte_cursor src_cur = aws_byte_cursor_from_buf(src);
-    return aws_byte_buf_init_copy_from_cursor(allocator, dest, &src_cur);
+    return aws_byte_buf_init_copy_from_cursor(dest, allocator, src_cur);
 }
 
 /**
@@ -484,17 +489,14 @@ static inline bool aws_byte_buf_write(
     const uint8_t *AWS_RESTRICT src,
     size_t len) {
 
-    struct aws_byte_cursor write_cursor;
-    write_cursor.ptr = cur->buffer + cur->len;
-    write_cursor.len = cur->capacity - cur->len;
-    struct aws_byte_cursor slice = aws_byte_cursor_advance(&write_cursor, len);
-
-    if (slice.ptr) {
-        memcpy(slice.ptr, src, len);
-        cur->len += len;
-        return true;
+    if (cur->len > (SIZE_MAX >> 1) || len > (SIZE_MAX >> 1) || cur->len + len > cur->capacity) {
+        return false;
     }
-    return false;
+
+    memcpy(cur->buffer + cur->len, src, len);
+    cur->len += len;
+
+    return true;
 }
 
 /**
@@ -506,8 +508,8 @@ static inline bool aws_byte_buf_write(
  */
 static inline bool aws_byte_buf_write_from_whole_buffer(
     struct aws_byte_buf *AWS_RESTRICT cur,
-    const struct aws_byte_buf *AWS_RESTRICT src) {
-    return aws_byte_buf_write(cur, src->buffer, src->len);
+    struct aws_byte_buf src) {
+    return aws_byte_buf_write(cur, src.buffer, src.len);
 }
 
 /**
@@ -519,8 +521,8 @@ static inline bool aws_byte_buf_write_from_whole_buffer(
  */
 static inline bool aws_byte_buf_write_from_whole_cursor(
     struct aws_byte_buf *AWS_RESTRICT cur,
-    const struct aws_byte_cursor *AWS_RESTRICT src) {
-    return aws_byte_buf_write(cur, src->ptr, src->len);
+    struct aws_byte_cursor src) {
+    return aws_byte_buf_write(cur, src.ptr, src.len);
 }
 
 /**

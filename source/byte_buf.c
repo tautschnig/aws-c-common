@@ -24,7 +24,7 @@
 #    pragma warning(disable : 4706)
 #endif
 
-int aws_byte_buf_init(struct aws_allocator *allocator, struct aws_byte_buf *buf, size_t capacity) {
+int aws_byte_buf_init(struct aws_byte_buf *buf, struct aws_allocator *allocator, size_t capacity) {
     buf->buffer = (uint8_t *)aws_mem_acquire(allocator, capacity);
     if (!buf->buffer) {
         return AWS_OP_ERR;
@@ -74,39 +74,38 @@ bool aws_byte_buf_eq(const struct aws_byte_buf *a, const struct aws_byte_buf *b)
 }
 
 int aws_byte_buf_init_copy_from_cursor(
-    struct aws_allocator *allocator,
     struct aws_byte_buf *dest,
-    const struct aws_byte_cursor *src) {
+    struct aws_allocator *allocator,
+    struct aws_byte_cursor src) {
     assert(allocator);
     assert(dest);
-    assert(src);
 
     dest->len = 0;
     dest->capacity = 0;
     dest->allocator = NULL;
-    if (src->ptr == NULL) {
+    if (src.ptr == NULL) {
         dest->buffer = NULL;
         return AWS_OP_SUCCESS;
     }
 
-    dest->buffer = (uint8_t *)aws_mem_acquire(allocator, sizeof(uint8_t) * src->len);
+    dest->buffer = (uint8_t *)aws_mem_acquire(allocator, sizeof(uint8_t) * src.len);
     if (dest->buffer == NULL) {
         return AWS_OP_ERR;
     }
 
-    dest->len = src->len;
-    dest->capacity = src->len;
+    dest->len = src.len;
+    dest->capacity = src.len;
     dest->allocator = allocator;
-    memcpy(dest->buffer, src->ptr, src->len);
+    memcpy(dest->buffer, src.ptr, src.len);
     return AWS_OP_SUCCESS;
 }
 
 int aws_byte_cursor_split_on_char_n(
-    const struct aws_byte_cursor *AWS_RESTRICT input_str,
+    struct aws_byte_cursor input_str,
     char split_on,
-    struct aws_array_list *AWS_RESTRICT output,
-    size_t n) {
-    assert(input_str);
+    size_t n,
+    struct aws_array_list *AWS_RESTRICT output) {
+    assert(input_str.ptr);
     assert(output);
     assert(output->item_size >= sizeof(struct aws_byte_cursor));
 
@@ -114,15 +113,15 @@ int aws_byte_cursor_split_on_char_n(
     size_t last_offset = 0, split_count = 0;
     uint8_t *new_location = NULL;
 
-    struct aws_byte_cursor current_pos = *input_str;
+    size_t input_len = input_str.len;
 
-    while (split_count < max_splits && (new_location = memchr(current_pos.ptr, split_on, current_pos.len))) {
+    while (split_count < max_splits && (new_location = memchr(input_str.ptr, split_on, input_str.len))) {
 
-        size_t distance_from_origin = new_location - current_pos.ptr;
+        size_t distance_from_origin = new_location - input_str.ptr;
 
-        struct aws_byte_cursor buffer = aws_byte_cursor_advance(&current_pos, distance_from_origin);
+        struct aws_byte_cursor buffer = aws_byte_cursor_advance(&input_str, distance_from_origin);
         /* skip ahead by one to jump over the split_on character.*/
-        aws_byte_cursor_advance(&current_pos, 1);
+        aws_byte_cursor_advance(&input_str, 1);
 
         if (AWS_UNLIKELY(aws_array_list_push_back(output, (const void *)&buffer))) {
             return AWS_OP_ERR;
@@ -132,8 +131,8 @@ int aws_byte_cursor_split_on_char_n(
         split_count += 1;
     }
 
-    if (last_offset < input_str->len) {
-        return aws_array_list_push_back(output, (const void *)&current_pos);
+    if (last_offset < input_len) {
+        return aws_array_list_push_back(output, (const void *)&input_str);
     }
 
     /* if we get here, we hit the end and we need to add an empty split */
@@ -147,10 +146,11 @@ int aws_byte_cursor_split_on_char_n(
 }
 
 int aws_byte_cursor_split_on_char(
-    const struct aws_byte_cursor *AWS_RESTRICT input_str,
+    struct aws_byte_cursor input_str,
     char split_on,
     struct aws_array_list *AWS_RESTRICT output) {
-    return aws_byte_cursor_split_on_char_n(input_str, split_on, output, 0);
+
+    return aws_byte_cursor_split_on_char_n(input_str, split_on, 0, output);
 }
 
 int aws_byte_buf_cat(struct aws_byte_buf *dest, size_t number_of_args, ...) {
